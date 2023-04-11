@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { APIResponse } from './app.controller';
 
 @Injectable()
 export class AppService {
-  getHello(): string {
-    return 'Hello World!';
+  getServerStats(): APIResponse {
+    return {
+      message: 'HTTP server running',
+      code: 200,
+      errors: [],
+    };
   }
 }

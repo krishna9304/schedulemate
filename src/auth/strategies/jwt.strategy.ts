@@ -9,23 +9,21 @@ import { UsersService } from 'src/users/users.service';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    configService: ConfigService,
-    private readonly usersService: UsersService,
+    configService?: ConfigService,
+    private readonly usersService?: UsersService,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromExtractors([
-        (request: any) => {
-          return request?.Authentication;
-        },
-      ]),
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
       secretOrKey: configService.get('JWT_SECRET'),
     });
   }
 
-  async validate({ userId }: TokenPayload) {
+  async validate({ userId, email }: TokenPayload) {
     try {
       return await this.usersService.getUser({
         _id: new Types.ObjectId(userId),
+        email,
       });
     } catch (err) {
       throw new UnauthorizedException();
