@@ -1,30 +1,27 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { IsEmail, IsMobilePhone } from 'class-validator';
 import { AbstractDocument } from 'src/database/abstract.schema';
 
 @Schema({ versionKey: false })
-export class User extends AbstractDocument {
-  @Prop({ required: true, unique: true })
-  @IsEmail()
-  email: string;
+export class Slot extends AbstractDocument {
+  @Prop({ required: true, ref: 'HostAvailability' })
+  availability_id: string;
 
   @Prop({ required: true })
-  name: string;
+  slot_id: string;
 
   @Prop({ required: true })
-  gender: string;
+  slot_start_time: string;
 
   @Prop({ required: true })
-  password: string;
+  slot_end_time: string;
 
-  @Prop({ required: true })
-  @IsMobilePhone('en-IN')
-  primaryPhone: string;
+  @Prop({ default: null })
+  meeting_link: string | null;
 
-  @Prop({ required: true })
-  dateOfBirth: string;
+  @Prop({ default: null })
+  attendie_email: string | null;
 
-  @Prop({ default: 'active' })
+  @Prop({ default: 'available' })
   status: string;
 
   @Prop({ default: new Date().toISOString() })
@@ -37,4 +34,4 @@ export class User extends AbstractDocument {
   metadata: any;
 }
 
-export const UserSchema = SchemaFactory.createForClass(User);
+export const SlotSchema = SchemaFactory.createForClass(Slot);

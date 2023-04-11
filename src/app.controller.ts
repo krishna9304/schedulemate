@@ -5,6 +5,7 @@ export interface APIResponse {
   message: string;
   code: number;
   errors: Array<string>;
+  data?: any;
 }
 
 @Controller()
