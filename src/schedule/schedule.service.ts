@@ -33,32 +33,45 @@ export class ScheduleService {
     private readonly usersRepository: UsersRepository,
     private readonly configService: ConfigService,
   ) {
+    // CRON SCHDULERS
     cron.schedule('*/15 * * * *', async () => {
       this.logger.log('Checking for expired slots');
       try {
-        const currentTime = moment().toDate();
         // Find all slots that have a start time less than the current time and are 'available' or 'booked'
+        const currentTime = moment.tz(new Date(), 'Asia/Kolkata');
         const slots = await this.slotRepository.find({
-          slot_start_time: { $lt: currentTime },
           status: { $in: ['available', 'booked'] },
         });
 
-        await this.slotRepository.bulkUpdateSlots(slots);
+        let finalSlots = [];
+        for (const slot of slots) {
+          const slotStartTime = moment(new Date(slot.slot_start_time));
+          if (slotStartTime.isBefore(currentTime)) {
+            finalSlots.push(slot);
+          }
+        }
+        await this.slotRepository.bulkUpdateSlots(finalSlots);
       } catch (error) {
         throw new InternalServerErrorException(error.message);
       }
     });
 
     cron.schedule('59 23 * * *', async () => {
-      const currentTime = moment().toDate();
+      const currentTime = moment.tz(new Date(), 'Asia/Kolkata');
       // Find all availabilties that have a day start time less than the current time and are 'active'
       const availabilities = await this.hostAvailabiltyRepository.find({
-        day_start_time: { $lt: currentTime },
         status: 'active',
       });
 
+      let finalAvailabilities = [];
+      for (const availability of availabilities) {
+        const dayStartTime = moment(new Date(availability.day_start_time));
+        if (dayStartTime.isBefore(currentTime)) {
+          finalAvailabilities.push(availability);
+        }
+      }
       await this.hostAvailabiltyRepository.bulkUpdateAvailabilties(
-        availabilities,
+        finalAvailabilities,
       );
     });
   }
@@ -96,6 +109,7 @@ export class ScheduleService {
 
   async validateAvailabilityRequest(
     availabilityReq: CreateHostAvailabilityRequest,
+    user: User,
   ) {
     // Parse the time strings
     availabilityReq = this.parseTimeStrings(availabilityReq);
@@ -136,14 +150,14 @@ export class ScheduleService {
     }
 
     // Check if there is already a schedule for the given date
-    const existingSchedule = await this.hostAvailabiltyRepository.findOne({
+    const existingSchedule = await this.hostAvailabiltyRepository.exists({
       date: availabilityReq.date,
-      host_email: availabilityReq.host_email,
+      host_email: user.email,
     });
 
     if (existingSchedule) {
       throw new BadRequestException(
-        'Schedule already exists for the given date',
+        'Your schedule already exists for the given date',
       );
     }
   }
@@ -152,7 +166,7 @@ export class ScheduleService {
     availabilityReq: CreateHostAvailabilityRequest,
     user: User,
   ) {
-    await this.validateAvailabilityRequest(availabilityReq);
+    await this.validateAvailabilityRequest(availabilityReq, user);
     const avl_doc: HostAvailability =
       await this.hostAvailabiltyRepository.create({
         ...availabilityReq,
