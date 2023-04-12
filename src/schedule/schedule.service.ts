@@ -248,6 +248,7 @@ export class ScheduleService {
     for (let avl of hostAvlDocs) {
       const slots = await this.slotRepository.find({
         availability_id: avl.availability_id,
+        status: { $in: ['available', 'booked'] },
       });
       returnVal[avl.date] = slots;
     }
@@ -377,5 +378,27 @@ export class ScheduleService {
     const date = moment.utc(dateString, 'ddd MMM DD YYYY HH:mm:ss [GMT]ZZ');
     const formattedDate = date.format('YYYY-MM-DDTHH:mm:ssZZ');
     return formattedDate;
+  }
+
+  async getBookedSlots(user: User): Promise<{
+    [key: string]: Slot[];
+  }> {
+    // get availability ids for the user
+    const hostAvlDocs = await this.hostAvailabiltyRepository.find({
+      host_email: user.email,
+    });
+
+    // get all slots for the availability ids
+    const returnVal = {};
+
+    for (let avl of hostAvlDocs) {
+      const slots = await this.slotRepository.find({
+        availability_id: avl.availability_id,
+        status: 'booked',
+      });
+      returnVal[avl.date] = slots;
+    }
+
+    return returnVal;
   }
 }

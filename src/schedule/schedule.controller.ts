@@ -53,4 +53,10 @@ export class ScheduleController {
   bookSlot(@Query() query: any) {
     return this.scheduleService.bookSlot(query);
   }
+
+  @Get('host/get-booked-slots')
+  @UseGuards(JwtAuthGuard)
+  getBookedSlots(@CurrentUser() user: User) {
+    return this.scheduleService.getBookedSlots(user);
+  }
 }
