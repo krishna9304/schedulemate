@@ -8,6 +8,9 @@ export class HostAvailability extends AbstractDocument {
   @Prop({ required: true })
   availability_id: string;
 
+  @Prop({ required: true })
+  title: string;
+
   @Prop({ required: true, ref: 'User' })
   host_email: string;
 

@@ -4,7 +4,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { Model, Connection } from 'mongoose';
+import { Model, Connection, Types, MongooseError } from 'mongoose';
 import { AbstractRepository } from 'src/database/abstract.repository';
 import { Slot } from '../schemas/slot.schema';
 
@@ -35,6 +35,32 @@ export class SlotRepository extends AbstractRepository<Slot> {
       await this.model.deleteOne({ slot_id });
     } catch (error) {
       throw new InternalServerErrorException(error);
+    }
+  }
+
+  async bulkUpdateSlots(slots: Slot[]): Promise<void> {
+    try {
+      // Update the status of each slot to 'unavailable'
+      const bulkOps = slots.map((slot: Slot) => {
+        return {
+          updateOne: {
+            filter: { _id: new Types.ObjectId(slot._id) },
+            update: {
+              status: 'unavailable',
+              updated_at: new Date().toISOString(),
+            },
+            upsert: true,
+          },
+        };
+      });
+
+      const bulkWriteResult = await this.model.bulkWrite(bulkOps);
+      this.logger.debug(
+        `Successfully updated ${bulkWriteResult.modifiedCount} slot status.`,
+      );
+    } catch (error) {
+      this.logger.error(`Error updating slot status: ${error.message}`);
+      throw new MongooseError(error.message);
     }
   }
 }

@@ -7,6 +7,10 @@ export class CreateHostAvailabilityRequest {
 
   @IsNotEmpty()
   @IsString()
+  title: string;
+
+  @IsNotEmpty()
+  @IsString()
   date: string;
 
   @IsNotEmpty()
