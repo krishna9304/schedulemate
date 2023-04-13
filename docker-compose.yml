@@ -1,0 +1,29 @@
+services:
+  schedulemate-server:
+    container_name: schedulemate-server
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: development
+    command: npm run start:dev
+    env_file:
+      - ./.env
+    depends_on:
+      - mongodb
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - '8000:8000'
+
+  mongodb:
+    image: mongo
+    container_name: mongo-primary
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongodb_master_data:/data/db
+
+volumes:
+  mongodb_master_data:
+    driver: local
