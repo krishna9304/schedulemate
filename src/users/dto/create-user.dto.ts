@@ -14,7 +14,7 @@ export class CreateUserRequest {
 
   @IsString()
   @IsNotEmpty()
-  @ApiProperty()
+  @ApiProperty({ example: 'M' })
   gender: string;
 
   @IsString()
@@ -28,7 +28,7 @@ export class CreateUserRequest {
 
   @IsNotEmpty()
   @IsString()
-  @ApiProperty()
+  @ApiProperty({ example: 'dd-mm-yyyy' })
   dateOfBirth: string;
 
   status: string;

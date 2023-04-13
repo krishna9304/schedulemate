@@ -12,7 +12,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { LoginRequestDto } from './dto/auth.swagger.dto';
+import { LoginRequestDto, LoginResponseDto } from './dto/auth.swagger.dto';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -29,7 +29,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: 200,
-    type: User,
+    type: LoginResponseDto,
     description: 'User logged in succesfullly',
   })
   @UseGuards(LocalAuthGuard)
@@ -37,8 +37,7 @@ export class AuthController {
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
   ) {
-    await this.authService.login(user, response);
-    response.status(200).send(user);
+    return await this.authService.login(user, response);
   }
 
   @Get('logout')

@@ -5,6 +5,7 @@ import { Response } from 'express';
 import { AuthService } from 'src/auth/auth.service';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { User } from './schemas/user.schema';
+import { LoginResponseDto } from 'src/auth/dto/auth.swagger.dto';
 
 @Controller('users')
 @ApiTags('Users')
@@ -22,7 +23,7 @@ export class UsersController {
   @ApiBody({ type: CreateUserRequest })
   @ApiResponse({
     status: 201,
-    type: User,
+    type: LoginResponseDto,
     description: 'User registered succesfullly',
   })
   async createUser(
@@ -30,7 +31,6 @@ export class UsersController {
     @Res() response: Response,
   ): Promise<void> {
     const user = await this.usersService.createUser(request);
-    await this.authService.login(user, response);
-    response.send(user);
+    return await this.authService.login(user, response);
   }
 }
