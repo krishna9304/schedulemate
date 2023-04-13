@@ -286,106 +286,115 @@ export class ScheduleService {
   }
 
   // book a slot
-  async bookSlot(query: any) {
+  async bookSlot(query: any): Promise<Slot> {
     const { code, state } = query;
-    const slot = await this.slotRepository.findOne({ slot_id: state });
-    if (!slot) {
+    const slotExists = await this.slotRepository.exists({ slot_id: state });
+    if (!slotExists) {
       throw new BadRequestException('Invalid Slot ID');
     }
+
+    const slot = await this.slotRepository.findOne({ slot_id: state });
 
     if (slot.status !== 'available') {
       throw new BadRequestException('Slot is not available');
     }
 
-    const { tokens } = await this.oauth2Client.getToken(code);
-    this.oauth2Client.setCredentials(tokens);
+    try {
+      if (code) {
+        const { tokens } = await this.oauth2Client.getToken(code);
+        this.oauth2Client.setCredentials(tokens);
 
-    const availability = await this.hostAvailabiltyRepository.findOne({
-      availability_id: slot.availability_id,
-    });
-    const host = await this.usersRepository.findOne({
-      email: availability.host_email,
-    });
+        const availability = await this.hostAvailabiltyRepository.findOne({
+          availability_id: slot.availability_id,
+        });
+        const host = await this.usersRepository.findOne({
+          email: availability.host_email,
+        });
 
-    const calendar = google.calendar({
-      version: 'v3',
-      auth: this.oauth2Client,
-    });
+        const calendar = google.calendar({
+          version: 'v3',
+          auth: this.oauth2Client,
+        });
 
-    const conference = {
-      createRequest: {
-        conferenceSolutionKey: {
-          type: 'hangoutsMeet',
-        },
-        requestId: 'schedule-meeting',
-      },
-    };
-
-    const event = {
-      location: 'Virtual / Google Meet',
-      start: {
-        dateTime: this.formatDateToRFC3339(new Date(slot.slot_start_time)),
-        timeZone: 'Asia/Kolkata',
-      },
-      end: {
-        dateTime: this.formatDateToRFC3339(new Date(slot.slot_end_time)),
-        timeZone: 'Asia/Kolkata',
-      },
-      description: 'Some dummy description',
-      attendees: [],
-      conferenceData: conference,
-    };
-
-    const { data: eventResponse } = await calendar.events.insert({
-      calendarId: 'primary',
-      requestBody: event,
-      conferenceDataVersion: 1,
-      sendUpdates: 'all',
-    });
-
-    // Extract the Google Meet link from the event response
-    const meeting_link = eventResponse.hangoutLink;
-
-    // Update the event with the Google Meet link as the location
-    const { data: updatedEvent } = await calendar.events.patch({
-      calendarId: 'primary',
-      eventId: eventResponse.id,
-      requestBody: {
-        summary: availability.title + ' ' + eventResponse.creator.email,
-        location: meeting_link,
-        attendees: [
-          {
-            displayName: host.name,
-            email: availability.host_email,
-            organizer: true,
-          },
-          {
-            displayName: eventResponse.creator.displayName,
-            email: eventResponse.creator.email,
-            organizer: false,
-          },
-        ],
-        conferenceData: {
-          ...eventResponse.conferenceData,
-          entryPoints: [
-            {
-              entryPointType: 'video',
-              uri: meeting_link,
+        const conference = {
+          createRequest: {
+            conferenceSolutionKey: {
+              type: 'hangoutsMeet',
             },
-          ],
-        },
-      },
-    });
+            requestId: 'schedule-meeting',
+          },
+        };
 
-    return await this.slotRepository.findOneAndUpdate(
-      { slot_id: state },
-      {
-        status: 'booked',
-        updated_at: new Date().toISOString(),
-        meeting_link,
-        attendie_email: updatedEvent.creator.email,
-      },
-    );
+        const event = {
+          location: 'Virtual / Google Meet',
+          start: {
+            dateTime: this.formatDateToRFC3339(new Date(slot.slot_start_time)),
+            timeZone: 'Asia/Kolkata',
+          },
+          end: {
+            dateTime: this.formatDateToRFC3339(new Date(slot.slot_end_time)),
+            timeZone: 'Asia/Kolkata',
+          },
+          description: 'Some dummy description',
+          attendees: [],
+          conferenceData: conference,
+        };
+
+        const { data: eventResponse } = await calendar.events.insert({
+          calendarId: 'primary',
+          requestBody: event,
+          conferenceDataVersion: 1,
+          sendUpdates: 'all',
+        });
+
+        // Extract the Google Meet link from the event response
+        const meeting_link = eventResponse.hangoutLink;
+
+        // Update the event with the Google Meet link as the location
+        const { data: updatedEvent } = await calendar.events.patch({
+          calendarId: 'primary',
+          eventId: eventResponse.id,
+          requestBody: {
+            summary: availability.title + ' ' + eventResponse.creator.email,
+            location: meeting_link,
+            attendees: [
+              {
+                displayName: host.name,
+                email: availability.host_email,
+                organizer: true,
+              },
+              {
+                displayName: eventResponse.creator.displayName,
+                email: eventResponse.creator.email,
+                organizer: false,
+              },
+            ],
+            conferenceData: {
+              ...eventResponse.conferenceData,
+              entryPoints: [
+                {
+                  entryPointType: 'video',
+                  uri: meeting_link,
+                },
+              ],
+            },
+          },
+        });
+        return await this.slotRepository.findOneAndUpdate(
+          { slot_id: state },
+          {
+            status: 'booked',
+            updated_at: new Date().toISOString(),
+            meeting_link,
+            attendie_email: updatedEvent.creator.email,
+          },
+        );
+      } else {
+        throw new Error('Error while authenticating');
+      }
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   formatDateToRFC3339(dateString: Date) {

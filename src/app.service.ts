@@ -5,7 +5,7 @@ import { APIResponse } from './app.controller';
 export class AppService {
   getServerStats(): APIResponse {
     return {
-      message: 'HTTP server running',
+      message: 'Schedulemate HTTP server running',
       code: 200,
       errors: [],
     };
