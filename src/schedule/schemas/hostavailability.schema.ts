@@ -19,19 +19,19 @@ export class HostAvailability extends AbstractDocument {
   host_email: string;
 
   @Prop({ required: true })
-  @ApiProperty()
+  @ApiProperty({ example: 'yyyy-mm-dd' })
   date: string;
 
   @Prop({ required: true })
-  @ApiProperty()
+  @ApiProperty({ example: 'hh:mm:ss' })
   day_start_time: string;
 
   @Prop({ required: true })
-  @ApiProperty()
+  @ApiProperty({ example: 'hh:mm:ss' })
   day_end_time: string;
 
   @Prop({ required: true })
-  @ApiProperty()
+  @ApiProperty({ example: 30 })
   per_slot_duration: number;
 
   @Prop({ default: 'active' })
